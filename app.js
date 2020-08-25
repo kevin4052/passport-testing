@@ -27,6 +27,7 @@ app.use(express.urlencoded({
     extended: true
 }));
 
+/* sessions setup*/
 app.use(
     session({
         secret: "our-passport-local-strategy-app",
@@ -38,6 +39,7 @@ app.use(
     })
 );
 
+/* passport setup */
 app.use(passport.initialize());
 app.use(passport.session());
 
