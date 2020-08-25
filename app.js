@@ -1,3 +1,8 @@
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const hbs = require('hbs');
+const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
 
@@ -5,7 +10,22 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 
-const User = require('./models/user.js');
+const app = express();
+
+// Set up the database
+require('./configs/db.config');
+
+const User = require('./modules/user.model');
+
+// Express View engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'hbs');
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.use(express.urlencoded({
+    extended: true
+}));
 
 app.use(
     session({
@@ -59,7 +79,10 @@ passport.use(new LocalStrategy({
 
 
 // Routes
-const router = require('./routes/auth-routes');
-app.use('/', router);
+const index = require('./routes/index.routes');
+const auth = require('./routes/auth-routes');
+
+app.use('/', index);
+app.use('/', auth);
 
 module.exports = app;
