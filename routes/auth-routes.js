@@ -55,7 +55,10 @@ router.post('/signup', (req, res, next) => {
 
             newUser
                 .save()
-                .then(() => res.redirect('/'))
+                .then(() => {
+                    console.log(newUser);
+                    res.redirect('/');
+                })
                 .catch((err) => next(err));
         })
         .catch((err) => next(err));
@@ -64,12 +67,13 @@ router.post('/signup', (req, res, next) => {
 
 /* Passport signup and login */
 router.get('/login', (req, res, next) => {
-    res.render('auth/login');
+    res.render('auth/login', { "errorMessage": req.flash("error") });
 });
 
 router.post("/login", passport.authenticate("local", {
     successRedirect: "/",
-    failureRedirect: "/login"
+    failureRedirect: "/login",
+    failureFlash: true
 }));
 
 router.get("/private-page", (req, res) => {
@@ -83,5 +87,11 @@ router.get("/private-page", (req, res) => {
         user: req.user
     });
 });
+
+router.get('/logout', (req, res) => {
+    req.logout();
+    res.redirect('/login');
+  });
+  
 
 module.exports = router;
