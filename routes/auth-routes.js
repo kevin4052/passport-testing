@@ -17,20 +17,19 @@ router.get('/signup', (req, res, next) => {
 router.post('/signup', (req, res, next) => {
     const {
         username,
+        email,
         password
     } = req.body;
 
     // 1. Check username and password are not empty
-    if (!username || !password) {
+    if (!username || !password || !email) {
         res.render('auth/signup', {
-            errorMessage: 'Indicate username and password'
+            errorMessage: 'Please fill all the fields'
         });
         return;
     }
 
-    User.findOne({
-            username
-        })
+    User.findOne({email})
         .then((user) => {
             // 2. Check user does not already exist
             if (user !== null) {
@@ -44,22 +43,19 @@ router.post('/signup', (req, res, next) => {
             const salt = bcrypt.genSaltSync(bcryptSalt);
             const hashPass = bcrypt.hashSync(password, salt);
 
-            //
             // Save the user in DB
-            //
-
-            const newUser = new User({
+            const newUser = {
                 username,
-                password: hashPass,
-            });
+                email,
+                passwordhash: hashPass,
+            };
 
-            newUser
-                .save()
-                .then(() => {
-                    console.log(newUser);
-                    res.redirect('/');
+            User.create(newUser)
+                .then(createdUser => {
+                    console.log(createdUser);
+                    res.redirect('/login');
                 })
-                .catch((err) => next(err));
+                .catch(err => next(err));
         })
         .catch((err) => next(err));
 });
@@ -71,7 +67,7 @@ router.get('/login', (req, res, next) => {
 });
 
 router.post("/login", passport.authenticate("local", {
-    successRedirect: "/",
+    successRedirect: "/private-page",
     failureRedirect: "/login",
     failureFlash: true
 }));
