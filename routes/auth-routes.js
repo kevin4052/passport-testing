@@ -2,18 +2,20 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 
-// User model
+// route protection through passport's req.isAuthenticated() method
+const ensureAuthentication = require('../configs/route-guard.config');
+
+// requiring the User model
 const User = require('../models/user.model');
 
 // Bcrypt to encrypt passwords
 const bcrypt = require('bcrypt');
-const bcryptSalt = 10;
+const bcryptSaltRounds = 10;
 
-/* signup routes*/
-router.get('/signup', (req, res, next) => {
-    res.render('auth/signup');
-});
+// GET signup page
+router.get('/signup', (req, res, next) => res.render('auth/signup'));
 
+// POST signup form
 router.post('/signup', (req, res, next) => {
     const {
         username,
@@ -21,7 +23,7 @@ router.post('/signup', (req, res, next) => {
         password
     } = req.body;
 
-    // 1. Check username and password are not empty
+    // Check if username, password, and email are not empty
     if (!username || !password || !email) {
         res.render('auth/signup', {
             errorMessage: 'Please fill all the fields'
@@ -29,9 +31,10 @@ router.post('/signup', (req, res, next) => {
         return;
     }
 
+    // Find if user email is already in the database 
     User.findOne({email})
         .then((user) => {
-            // 2. Check user does not already exist
+            // Check user does not already exist
             if (user !== null) {
                 res.render('auth/signup', {
                     message: 'The username already exists'
@@ -39,20 +42,21 @@ router.post('/signup', (req, res, next) => {
                 return;
             }
 
-            // Encrypt the password
-            const salt = bcrypt.genSaltSync(bcryptSalt);
+            // Encrypting the password
+            const salt = bcrypt.genSaltSync(bcryptSaltRounds);
             const hashPass = bcrypt.hashSync(password, salt);
 
-            // Save the user in DB
+            // Collect user info into object
             const newUser = {
                 username,
                 email,
                 passwordhash: hashPass,
             };
 
+            // Create new user doc in the database
             User.create(newUser)
                 .then(createdUser => {
-                    console.log(createdUser);
+                    console.log({createdUser});
                     res.redirect('/login');
                 })
                 .catch(err => next(err));
@@ -61,29 +65,26 @@ router.post('/signup', (req, res, next) => {
 });
 
 
-/* Passport signup and login */
+// GET login page with flash error message from passport
 router.get('/login', (req, res, next) => {
     res.render('auth/login', { "errorMessage": req.flash("error") });
 });
 
+// POST login form with passport-local strategy
 router.post("/login", passport.authenticate("local", {
     successRedirect: "/private-page",
     failureRedirect: "/login",
     failureFlash: true
 }));
 
-router.get("/private-page", (req, res) => {
-    if (!req.user) {
-        res.redirect('/login'); // not logged-in
-        return;
-    }
-
-    // ok, req.user is defined
+// GET private page which is protected with a route gaurd 
+router.get("/private-page", ensureAuthentication, (req, res) => {
     res.render("private", {
         user: req.user
     });
 });
 
+// GET logout, passport req.logout() closes the current session
 router.get('/logout', (req, res) => {
     req.logout();
     res.redirect('/login');
